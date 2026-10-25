@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VYDE — Video Downloader</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#090b10;color:#f5f7fa;font-family:Arial,sans-serif;display:grid;place-items:center;padding:22px}
+main{width:100%;max-width:430px;background:#121620;border:1px solid #292f3c;border-radius:24px;padding:25px}
+.logo{font-size:30px;font-weight:900;letter-spacing:5px}
+.tag{color:#929bad;font-size:13px;margin:8px 0 27px}
+h1{font-size:25px;line-height:1.2}
+p{color:#aab2c2;font-size:14px;line-height:1.6}
+input,button{width:100%;padding:15px;border-radius:12px;font-size:15px}
+input{background:#090d15;color:white;border:1px solid #353d4e;margin:12px 0}
+button{border:0;font-weight:bold;cursor:pointer}
+.paste{background:#242c3b;color:white;margin-bottom:10px}
+.go{background:#d9f66f;color:#11170a}
+button:disabled{opacity:.6}
+#status{overflow-wrap:anywhere;margin-top:16px}
+a{color:#d9f66f;overflow-wrap:anywhere}
+footer{font-size:11px;color:#7e8799;margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+  <div class="logo">VYDE.</div>
+  <div class="tag">VIDEO DOWNLOADER · SIMPLE & CLEAN</div>
+  <h1>Video favoritmu,<br>lebih mudah disimpan.</h1>
+  <p>Tempel tautan video publik yang kamu punya izin untuk simpan.</p>
+  <input id="url" type="url" placeholder="Tempel tautan video TikTok…">
+  <button class="paste" id="paste">Tempel tautan</button>
+  <button class="go" id="go">Proses video ↗</button>
+  <div id="status" role="status"></div>
+  <footer>Gunakan secara bertanggung jawab. Hormati hak cipta dan privasi kreator.</footer>
+</main>
+<script>
+const input = document.getElementById("url");
+const status = document.getElementById("status");
+const go = document.getElementById("go");
+
+document.getElementById("paste").onclick = async () => {
+  try {
+    input.value = await navigator.clipboard.readText();
+    status.textContent = "Tautan berhasil ditempel.";
+  } catch {
+    status.textContent = "Tempel manual: tekan kolom lalu pilih Tempel.";
+  }
+};
+
+go.onclick = async () => {
+  const url = input.value.trim();
+  if (!/^https?:\/\/\S+/i.test(url)) {
+    status.textContent = "Masukkan tautan video yang valid dulu.";
+    return;
+  }
+
+  go.disabled = true;
+  status.textContent = "Sedang memproses…";
+
+  try {
+    const response = await fetch("/api/download", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({url})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Gagal memproses video.");
+
+    status.replaceChildren();
+    const message = document.createElement("p");
+    message.textContent = "Video siap jika layanan menyediakan tautan unduhan.";
+    const link = document.createElement("a");
+    link.href = data.downloadUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Buka / unduh video";
+    status.append(message, link);
+  } catch (e) {
+    status.textContent = e.message || "Terjadi kesalahan. Coba lagi.";
+  } finally {
+    go.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
